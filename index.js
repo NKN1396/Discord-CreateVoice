@@ -5,33 +5,27 @@ var leftPad = require("left-pad");
 
 //Variables
 var bot = new Discord.Client();
-var instance_id = 0;
+var debug_instanceId_global = 0;
 class myEmitter extends EventEmitter{}
 var logger = new myEmitter();
 
 //Config
-const whitelist = [
-	"1234567890",
-	"691337420",
-	"6969696969"
-];
-const channel_category = "468328663797071872";
+const config = require("./config.json");
 
 //TODO: DEBG
 //TODO: emit warn and error events
 //TODO: logging to file
 
 bot.on("message", (message) => {
-	if(!message.content.startsWith("/create")){ //check if message starts with "/create"
-		return;
-	}
-	instance_id += 1;
-	var instance = instance_id;
-	logger.emit("debug", `CREATE/01/${leftPad(instance,4,"0")}/DBG - "/create" prompt detected`);
+	//check if message starts with "/create"
+	if(!message.content.startsWith("/create")) return;
+	debug_instanceId_global += 1;
+	var debug_instanceId_temporal = debug_instanceId_global;
+	logger.emit("debug", `CREATE/01/${leftPad(debug_instanceId_temporal,4,"0")}/DBG - "/create" prompt detected`);
 	if(!message.member){ //check if message was sent from a Discord guild
-		return logger.emit("debug", `CREATE/02/${leftPad(instance,4,"0")}/DBG - FAIL! Command issued in DM. Stopping here.`);
+		return logger.emit("debug", `CREATE/02/${leftPad(debug_instanceId_temporal,4,"0")}/DBG - FAIL! Command issued in DM. Stopping here.`);
 	}
-	logger.emit("debug", `CREATE/02/${leftPad(instance,4,"0")}/DBG - PASS! Command issued on guild.`);
+	logger.emit("debug", `CREATE/02/${leftPad(debug_instanceId_temporal,4,"0")}/DBG - PASS! Command issued on guild.`);
 	message.guild.createChannel(
 		`Talk ${message.member.displayName}`,
 		"voice",
@@ -57,41 +51,41 @@ bot.on("message", (message) => {
 		(`Created by ${message.member.displayName} via /create command`)
 	)
 		.catch((error) =>{
-			logger.emit("debug", `CREATE/03/${leftPad(instance,4,"0")}/ERR - ERROR! Could not create new channel or lacking certain permissions`);
+			logger.emit("debug", `CREATE/03/${leftPad(debug_instanceId_temporal,4,"0")}/ERR - ERROR! Could not create new channel or lacking certain permissions`);
 			logger.emit("error", error);
 		})
 		.then(channel=>{
-			logger.emit("debug", `CREATE/03/${leftPad(instance,4,"0")}/DBG - PASS! VoiceChannel "${channel.name}" created`);
+			logger.emit("debug", `CREATE/03/${leftPad(debug_instanceId_temporal,4,"0")}/DBG - PASS! VoiceChannel "${channel.name}" created`);
 			deleteEmptyChannelAfterDelay(channel); //EXPERIMENTAL AND DISABLED FOR NOW, could cause issues
-			channel.setParent(channel_category)
+			channel.setParent(config.category)
 				.then(()=>{})
 				.catch((error) =>{
-					logger.emit("debug", `CREATE/04/${leftPad(instance,4,"0")}/ERR - ERROR! Could not change parent of channel`);
+					logger.emit("debug", `CREATE/04/${leftPad(debug_instanceId_temporal,4,"0")}/ERR - ERROR! Could not change parent of channel`);
 					logger.emit("error", error);
 				})
 				.finally(function(){	//move channel in voice category
-					logger.emit("debug", `CREATE/04/${leftPad(instance,4,"0")}/DBG - PASS! Changed parent of new channel`);
-					channel.setPosition(message.guild.channels.get(channel_category).children.size - 3)
+					logger.emit("debug", `CREATE/04/${leftPad(debug_instanceId_temporal,4,"0")}/DBG - PASS! Changed parent of new channel`);
+					channel.setPosition(message.guild.channels.get(config.category).children.size - 3)
 						.catch((error) =>{
-							logger.emit("debug", `CREATE/05/${leftPad(instance,4,"0")}/ERR - ERROR! Could not move channel`);
+							logger.emit("debug", `CREATE/05/${leftPad(debug_instanceId_temporal,4,"0")}/ERR - ERROR! Could not move channel`);
 							logger.emit("error", error);
 						})
 						.finally(function(){ //move channel to correct position
-							logger.emit("debug", `CREATE/05/${leftPad(instance,4,"0")}/DBG - PASS! Moved channel to a different position`);
+							logger.emit("debug", `CREATE/05/${leftPad(debug_instanceId_temporal,4,"0")}/DBG - PASS! Moved channel to a different position`);
 							channel.permissionOverwrites.get(message.guild.defaultRole.id).delete()
 								.catch((error) =>{
-									logger.emit("debug", `CREATE/06/${leftPad(instance,4,"0")}/ERR - ERROR! Could not delete overwrites for role "${message.guild.defaultRole.name}"`);
+									logger.emit("debug", `CREATE/06/${leftPad(debug_instanceId_temporal,4,"0")}/ERR - ERROR! Could not delete overwrites for role "${message.guild.defaultRole.name}"`);
 									logger.emit("error", error);
 								})
 								.then(function(){ //delete overwrite for @everyone (make channel visible again)
-									logger.emit("debug", `CREATE/06/${leftPad(instance,4,"0")}/DBG - PASS! Deleted overwrites for role "${message.guild.defaultRole.name}"`);
+									logger.emit("debug", `CREATE/06/${leftPad(debug_instanceId_temporal,4,"0")}/DBG - PASS! Deleted overwrites for role "${message.guild.defaultRole.name}"`);
 									channel.createInvite()
 										.catch((error) =>{
-											logger.emit("debug", `CREATE/07/${leftPad(instance,4,"0")}/DBG - ERROR! Invite not created`);
+											logger.emit("debug", `CREATE/07/${leftPad(debug_instanceId_temporal,4,"0")}/DBG - ERROR! Invite not created`);
 											logger.emit("error", error);
 										})
 										.then((invite) => {
-											logger.emit("debug", `CREATE/07/${leftPad(instance,4,"0")}/DBG - PASS! Invite created`);
+											logger.emit("debug", `CREATE/07/${leftPad(debug_instanceId_temporal,4,"0")}/DBG - PASS! Invite created`);
 											bot.channels.get("321449537413578752").send(`Created ${channel.name} for ${message.member} - ${invite} <- join link to go into the VC`);
 										});
 								});
@@ -106,8 +100,8 @@ bot.on("voiceStateUpdate", (oldMember, newMember) => {
 });
 
 function deleteEmptyChannelAfterDelay(voiceChannel, delayMS = 12000){
-	instance_id += 1;
-	var instance = instance_id;
+	debug_instanceId_global += 1;
+	var instance = debug_instanceId_global;
 	if(!voiceChannel){
 		/**
 		 * This means member was previously not connected to a voice channel. As a result this also means that there's no channel that could be
@@ -116,9 +110,11 @@ function deleteEmptyChannelAfterDelay(voiceChannel, delayMS = 12000){
 		return logger.emit("debug", `DELETE/01/${leftPad(instance,4,"0")}/DBG - FAIL! Previous voice channel does not exist. Stopping here.`);
 	}
 	logger.emit("debug", `DELETE/01/${leftPad(instance,4,"0")}/DBG - PASS! Voice channel ${voiceChannel.name} exists`);
+	/*
 	for(var channel of whitelist){
 		if(voiceChannel.id == channel) return logger.emit("debug", `DELETE/02/${leftPad(instance,4,"0")}/DBG - FAIL! Voice channel ${voiceChannel.name} is whitelisted`);
 	}
+	*/
 	logger.emit("debug", `DELETE/02/${leftPad(instance,4,"0")}/DBG - PASS! Voice channel ${voiceChannel.name} not whitelisted`);
 	if(voiceChannel.members.first()){
 		/**
@@ -172,7 +168,7 @@ function deleteEmptyChannelAfterDelay(voiceChannel, delayMS = 12000){
 				logger.emit("debug", `DELETE/08/${leftPad(instance,4,"0")}/DBG - PASS! Deleted channel ${channel.name}`);
 			})
 			.catch(error => {
-				logger.emit("debug", `DELETE/08/${leftPad(instance,4,"0")}/DBG - ERROR! Could not delete channel ${channel.name}`);
+				logger.emit("debug", `DELETE/08/${leftPad(instance,4,"0")}/DBG - ERROR! Could not delete channel ${voiceChannel.name}`);
 				logger.emit("error", error);
 			});
 	}, delayMS);
@@ -187,4 +183,4 @@ logger
 		console.error(message);
 	});
 
-bot.login(require("./../nova-cores/token.json").kanna);
+bot.login(require("./token.json"));
